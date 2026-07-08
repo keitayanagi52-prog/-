@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b1e33">
+<title>展開ボード｜ボートレース1M展開予想</title>
+<style>
+  :root{
+    --bg:#0b1e33; --panel:#122b47; --panel2:#0e2440; --line:#274b74;
+    --tx:#eaf2fb; --tx2:#9db8d6; --acc:#38bdf8; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;}
+  body{padding-bottom:40px;}
+  header{padding:10px 12px 4px; display:flex; align-items:baseline; gap:8px;}
+  header h1{font-size:17px; margin:0; letter-spacing:.05em;}
+  header .sub{font-size:11px; color:var(--tx2);}
+  .row{display:flex; gap:6px; padding:6px 12px; flex-wrap:wrap; align-items:center;}
+  select,input[type=date],button,input[type=text]{
+    background:var(--panel); color:var(--tx); border:1px solid var(--line);
+    border-radius:9px; padding:8px 10px; font-size:14px; appearance:none;
+  }
+  input[type=date]{min-width:130px;}
+  button{cursor:pointer; font-weight:600;}
+  button:active{transform:scale(.96);}
+  button.primary{background:var(--acc); color:#04263c; border-color:var(--acc);}
+  button.small{padding:6px 9px; font-size:12px; border-radius:8px;}
+  button.on{background:var(--warn); color:#3a2a00; border-color:var(--warn);}
+  #raceMeta{padding:2px 12px 0; font-size:12px; color:var(--tx2); min-height:16px;}
+  #notice{padding:2px 12px; font-size:12px; color:var(--warn); min-height:0;}
+  #boardWrap{margin:6px 10px; border-radius:14px; overflow:hidden; position:relative;
+    box-shadow:0 6px 24px rgba(0,0,0,.4); border:1px solid var(--line);}
+  svg{display:block; width:100%; height:auto; touch-action:none; user-select:none;}
+  .toolbar{padding:8px 12px; display:flex; gap:6px; flex-wrap:wrap;}
+  .cards{display:grid; grid-template-columns:repeat(2,1fr); gap:6px; padding:4px 12px;}
+  @media(min-width:700px){.cards{grid-template-columns:repeat(3,1fr);}}
+  .card{background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:7px 8px; font-size:12px;}
+  .card.sel{border-color:var(--warn); box-shadow:0 0 0 1px var(--warn);}
+  .card .hd{display:flex; align-items:center; gap:6px; margin-bottom:5px;}
+  .chip{width:20px; height:20px; border-radius:5px; display:flex; align-items:center;
+    justify-content:center; font-weight:800; font-size:12px; flex:none;}
+  .card .nm{font-weight:700; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .card .cls{font-size:10px; color:var(--tx2); margin-left:auto; flex:none;}
+  .grid2{display:grid; grid-template-columns:auto 1fr auto 1fr; gap:3px 5px; align-items:center;}
+  .grid2 label{color:var(--tx2); font-size:10px;}
+  .grid2 input{width:100%; padding:4px 5px; font-size:13px; border-radius:6px; text-align:center;}
+  .best{color:#4ade80; font-weight:700;}
+  .stats{font-size:10px; color:var(--tx2); margin:-2px 0 5px; letter-spacing:.02em;}
+  .kb{padding:1px 5px; border-radius:5px; font-weight:700; font-size:10px;}
+  .kg{background:#14532d; color:#6ee7a0;}
+  .kr{background:#57241f; color:#fda49a;}
+  .kf{background:#5b2160; color:#f0a8f5;}
+  .rchip{display:inline-flex; width:22px; height:22px; border-radius:6px; align-items:center;
+    justify-content:center; font-weight:800; font-size:13px; margin:0 2px;}
+  textarea{width:calc(100% - 24px); margin:6px 12px; background:var(--panel2); color:var(--tx);
+    border:1px solid var(--line); border-radius:11px; padding:9px; font-size:14px; min-height:56px;}
+  h2{font-size:13px; color:var(--tx2); margin:12px 12px 4px; font-weight:600;}
+  #saves{padding:0 12px; display:flex; flex-direction:column; gap:6px;}
+  .saveItem{background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:8px 10px; display:flex; align-items:center; gap:8px; font-size:12px;}
+  .saveItem .lbl{flex:1; min-width:0;}
+  .saveItem .lbl b{font-size:13px;}
+  .saveItem .lbl div{color:var(--tx2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  details{margin:10px 12px; font-size:12px; color:var(--tx2); background:var(--panel2);
+    border:1px solid var(--line); border-radius:11px; padding:8px 12px;}
+  details b{color:var(--tx);}
+  details li{margin:4px 0;}
+  #loading{position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(4,15,28,.55); font-weight:700; font-size:14px; z-index:5;}
+  /* ---- desktop: 2-column, board fixed on the left ---- */
+  @media(min-width:900px){
+    body{display:grid; grid-template-columns:minmax(0,1.25fr) minmax(380px,540px);
+      gap:2px 22px; max-width:1360px; margin:0 auto; padding:0 18px 40px; align-items:start;}
+    body>*{grid-column:2; min-width:0;}
+    header,#pickerRow,#raceMeta,#notice{grid-column:1/-1;}
+    #boardWrap{grid-column:1; grid-row:5/40; position:sticky; top:10px; margin:6px 0;}
+    #boardWrap svg{max-height:calc(100vh - 40px);}
+    .cards{grid-template-columns:repeat(2,1fr); padding:4px 0;}
+    .toolbar{padding:8px 0;}
+    h2{margin:12px 0 4px;}
+    textarea{width:100%; margin:6px 0;}
+    #saves{padding:0;}
+    details{margin:10px 0;}
+    .card{font-size:13px;}
+    .grid2 input{font-size:15px;}
+    select,input[type=date],button{font-size:15px;}
+  }
+</style>
+</head>
+<body>
+<header><h1>⛵ 展開ボード</h1><span class="sub">1マーク展開予想（展示情報連動）</span></header>
+
+<div class="row" id="pickerRow">
+  <input type="date" id="dateIn">
+  <select id="venueSel"><option value="">場を選択</option></select>
+  <button class="small" id="prevRace">◀</button>
+  <select id="raceSel"></select>
+  <button class="small" id="nextRace">▶</button>
+  <button class="primary" id="fetchBtn">展示取得</button>
+  <button id="pasteBtn">📋 取込</button>
+</div>
+<div id="pastePanel" style="display:none; margin:4px 12px; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:10px;">
+  <div style="font-size:12px; color:var(--tx2); margin-bottom:6px;">
+    自動取得が古い/取れないときはこちら。どちらかのページを開いて全選択コピー→下に貼り付け（形式は自動判別）<br>
+    ① <a id="officialLink" href="#" target="_blank" rel="noopener" style="color:var(--acc); font-weight:700;">公式の直前情報 ↗</a>（進入・ST・展示タイム・チルト）
+    ② <a id="biyoriLink" href="#" target="_blank" rel="noopener" style="color:var(--acc); font-weight:700;">ボートレース日和 ↗</a>（進入・ST・展示・周回・周り足・直線・チルト）
+  </div>
+  <textarea id="pasteIn" placeholder="ここに直前情報ページの内容を貼り付け" style="width:100%; margin:0; min-height:70px;"></textarea>
+  <div style="display:flex; gap:6px; margin-top:6px;">
+    <button class="small primary" id="pasteGo">取り込む</button>
+    <button class="small" id="pasteClose">閉じる</button>
+  </div>
+</div>
+<div id="raceMeta"></div>
+<div id="notice"></div>
+<div id="resultPanel" style="display:none; margin:4px 12px; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:9px 12px; font-size:13px;"></div>
+
+<div id="boardWrap">
+  <div id="loading">取得中…</div>
+  <svg id="board" viewBox="0 0 1010 860" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0d3a63"/><stop offset="1" stop-color="#124a7e"/>
+      </linearGradient>
+      <marker id="arrowW" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="rgba(255,255,255,.65)"/>
+      </marker>
+      <clipPath id="coneClip"><path d="M0 -40 L19 14 L-19 14 Z"/></clipPath>
+    </defs>
+    <rect width="1010" height="860" fill="url(#water)"/>
+    <g opacity=".3" stroke="#8ecdf5" stroke-width="1">
+      <line x1="0" y1="120" x2="1010" y2="120" stroke-dasharray="2 12"/>
+      <line x1="0" y1="610" x2="1010" y2="610" stroke-dasharray="2 12"/>
+      <line x1="0" y1="780" x2="1010" y2="780" stroke-dasharray="2 12"/>
+    </g>
+    <text x="500" y="60" fill="#cfe6ff" font-size="18" text-anchor="middle" opacity=".55">バックストレッチ →</text>
+    <!-- stand-side shore (per-venue width) -->
+    <g id="shoreG">
+      <rect id="shoreRect" x="0" y="690" width="1010" height="170" fill="#0a1c30"/>
+      <line id="shoreLine" x1="0" y1="690" x2="1010" y2="690" stroke="#3d6389" stroke-width="3"/>
+      <text id="shoreTxt" x="505" y="726" fill="#7fa3c8" font-size="18" text-anchor="middle">スタンド側</text>
+    </g>
+    <!-- turn guide arrow around 1M (left turn) -->
+    <path d="M 500 560 C 700 545 822 480 824 350 C 826 215 680 185 540 210" fill="none"
+      stroke="rgba(255,255,255,.5)" stroke-width="4" stroke-dasharray="10 12" marker-end="url(#arrowW)"/>
+    <!-- start line (大時計〜1マーク) -->
+    <line x1="70" y1="330" x2="760" y2="330" stroke="#fff" stroke-width="3" stroke-dasharray="16 10" opacity=".8"/>
+    <g id="clock">
+      <circle cx="42" cy="330" r="26" fill="#0a2540" stroke="#cfe6ff" stroke-width="3"/>
+      <line x1="42" y1="330" x2="42" y2="312" stroke="#cfe6ff" stroke-width="3"/>
+      <line x1="42" y1="330" x2="54" y2="336" stroke="#f66" stroke-width="2.5"/>
+    </g>
+    <text x="82" y="312" fill="#cfe6ff" font-size="19" opacity=".85">スタートライン</text>
+    <line id="swingLink" x1="762" y1="330" x2="800" y2="330" stroke="#fff" stroke-width="2" stroke-dasharray="4 6" opacity=".5"/>
+    <!-- 1 mark: striped buoy -->
+    <g id="mark1" transform="translate(800,330)">
+      <ellipse cy="16" rx="22" ry="7" fill="rgba(0,0,0,.25)"/>
+      <g clip-path="url(#coneClip)">
+        <path d="M0 -40 L19 14 L-19 14 Z" fill="#e53935"/>
+        <rect x="-20" y="-22" width="40" height="11" fill="#fff"/>
+        <rect x="-20" y="0" width="40" height="11" fill="#fff"/>
+      </g>
+      <text y="-54" fill="#ffe1d4" font-size="24" font-weight="700" text-anchor="middle">1マーク</text>
+    </g>
+    <g id="windBadge" transform="translate(930,84)" opacity="0">
+      <circle r="42" fill="rgba(6,25,45,.55)" stroke="#4a7aa8"/>
+      <g id="windArrow"><path d="M0 -22 L10 0 L3 0 L3 22 L-3 22 L-3 0 L-10 0 Z" fill="#9fe0ff"/></g>
+      <text id="windTxt" y="62" fill="#cfe6ff" font-size="17" text-anchor="middle"></text>
+    </g>
+    <g id="paths" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+    <g id="boats"></g>
+  </svg>
+</div>
+
+<div class="toolbar">
+  <button class="small" id="fmStart">▶ スタート隊形</button>
+  <button class="small" id="fm1M">▶ 1M進入</button>
+  <button class="small" id="drawBtn">✏️ 航跡を描く</button>
+  <button class="small" id="undoBtn">↩ 戻す</button>
+  <button class="small" id="clearBtn">✕ 航跡クリア</button>
+</div>
+<div class="toolbar" style="align-items:center">
+  <span style="font-size:12px;color:var(--tx2)">定番展開:</span>
+  <button class="small" data-sc="nige">イン逃げ</button>
+  <button class="small" data-sc="sashi">2差し</button>
+  <button class="small" data-sc="makuri">カドまくり</button>
+  <button class="small" data-sc="makurizashi">まくり差し</button>
+</div>
+<div class="toolbar" style="align-items:center">
+  <span style="font-size:12px;color:var(--tx2)">1マークの振り</span>
+  <input type="range" id="swingIn" min="0" max="15" step="0.5" value="0" style="flex:1;max-width:230px">
+  <span id="swingVal" style="font-size:12px;min-width:40px">0m</span>
+</div>
+<div class="toolbar">
+  <button class="small primary" id="pngBtn">📷 画像で保存/共有</button>
+  <button class="small" id="saveBtn">💾 この展開を保存</button>
+  <button class="small" id="resultBtn">🏁 結果</button>
+</div>
+
+<h2>各艇データ（タップで手入力補正 → 再配置は「スタート隊形」）</h2>
+<div class="cards" id="cards"></div>
+
+<textarea id="memo" placeholder="予想メモ（狙い目・買い目など）"></textarea>
+
+<h2 id="savesHd" style="display:none">保存した展開</h2>
+<div id="saves"></div>
+
+<details>
+  <summary>使い方</summary>
+  <ul>
+    <li><b>展示取得</b>：日付→場→レースを選んでワンタップ。公式API＋ボートレース日和の二段構えで、<b>進入・ST・展示タイム・チルト・周回・周り足・直線</b>を自動で取り込み、ST通りの隊形を自動配置します。レース情報の[取得 時刻・ソース]で確認できます。</li>
+    <li><b>📋 公式から取込</b>：自動取得がどうしても取れないとき用の最終手段。公式/日和のページを開いて全選択コピー→貼り付けでも取り込めます。</li>
+    <li><b>定番展開</b>：「イン逃げ」「2差し」「カドまくり」「まくり差し」ボタンで、航跡付きの定番パターンを現在の進入コース基準でワンタップ配置。そこからドラッグで微調整できます。</li>
+    <li><b>◀▶ボタン</b>：前後のレースにワンタップで切替（取得済みなら自動で再取得）。場を選ぶと締切前の直近レースが自動選択されます。</li>
+    <li><b>🏁 結果</b>：レース確定後に押すと着順・決まり手・3連単払戻を表示。保存した展開にも🏁ボタンがあり、予想と結果を見比べられます。</li>
+    <li><b>艇を動かす</b>：艇をドラッグで移動。艇をタップして選択すると<b>◎ハンドル</b>が出るので、それを回すと向きを変えられます。</li>
+    <li><b>航跡を描く</b>：「✏️ 航跡を描く」をONにして水面をなぞると、<b>選択中の艇の色</b>でまくり・差しのラインが描けます。</li>
+    <li><b>画像で保存/共有</b>：ボードをPNG化して共有シートから友だちに送れます。</li>
+    <li><b>この展開を保存</b>：端末内に保存し、あとで読み込めます。</li>
+    <li>データ出典：<a href="https://boatraceopenapi.github.io/" style="color:var(--acc)">Boatrace Open API</a>（BOATRACE公式サイト由来・非公式）</li>
+  </ul>
+</details>
+
+<script>
+"use strict";
+const VENUES={1:"桐生",2:"戸田",3:"江戸川",4:"平和島",5:"多摩川",6:"浜名湖",7:"蒲郡",8:"常滑",9:"津",10:"三国",11:"びわこ",12:"住之江",13:"尼崎",14:"鳴門",15:"丸亀",16:"児島",17:"宮島",18:"徳山",19:"下関",20:"若松",21:"芦屋",22:"福岡",23:"唐津",24:"大村"};
+const COLORS={1:["#f8f8f4","#20242a"],2:["#25272b","#ffffff"],3:["#e23c3c","#ffffff"],4:["#2d6fe0","#ffffff"],5:["#f4c81f","#3a2f00"],6:["#2ba452","#ffffff"]};
+const CLS={1:"A1",2:"A2",3:"B1",4:"B2"};
+const WEATHER={1:"晴",2:"曇",3:"雨",4:"雪",5:"霧",6:"雷"};
+const API="https://boatraceopenapi.github.io";
+/* 1マーク幅員(1M〜スタンド側の距離, m)全24場 実データ */
+const VENUE_W={1:47,2:37,3:37.1,4:37,5:41,6:42.7,7:41.3,8:40,9:40,10:45,11:44,12:45,
+  13:49.1,14:45,15:42,16:43,17:40,18:45,19:43,20:41,21:53,22:50,23:42,24:48};
+const PXM=8, LINE0=330, MARKX=800;
+const GEO={jcd:null,w:45,swing:0,shoreY:690,laneTop:378,gap:52};
+const LANE_Y=c=>GEO.laneTop+(c-1)*GEO.gap;
+function swingKey(){return"tenkai_swing_"+(GEO.jcd||0);}
+function applyGeo(jcd){
+  GEO.jcd=jcd||null;
+  GEO.w=VENUE_W[jcd]||45;
+  let sv=0;try{sv=parseFloat(localStorage.getItem(swingKey()))||0;}catch(e){}
+  GEO.swing=sv;
+  GEO.shoreY=Math.round(LINE0+GEO.w*PXM);
+  GEO.laneTop=378;
+  GEO.gap=Math.round((GEO.shoreY-50-GEO.laneTop)/5);
+  GEO.vh=Math.min(860,GEO.shoreY+120);
+  GEO.sc=Math.max(1,Math.min(1.3,GEO.gap/34));
+  const sw=document.getElementById("swingIn");if(sw){sw.value=sv;document.getElementById("swingVal").textContent=sv+"m";}
+  geoVisual();
+}
+function geoVisual(){
+  svg.setAttribute("viewBox",`0 0 1010 ${GEO.vh||860}`);
+  const markY=LINE0-GEO.swing*PXM;
+  document.getElementById("mark1").setAttribute("transform",`translate(${MARKX},${markY})`);
+  const sl=document.getElementById("swingLink");
+  sl.setAttribute("y2",markY);sl.setAttribute("opacity",GEO.swing>0?.5:0);
+  document.getElementById("shoreRect").setAttribute("y",GEO.shoreY);
+  document.getElementById("shoreRect").setAttribute("height",Math.max(0,860-GEO.shoreY));
+  document.getElementById("shoreLine").setAttribute("y1",GEO.shoreY);
+  document.getElementById("shoreLine").setAttribute("y2",GEO.shoreY);
+  const t=document.getElementById("shoreTxt");
+  t.setAttribute("y",Math.min(846,GEO.shoreY+36));
+  t.textContent=GEO.jcd?`スタンド側　${VENUES[GEO.jcd]}：1M幅員 ${GEO.w}m${GEO.w<=37.1?"（狭い）":GEO.w>=50?"（広い）":""}`:"スタンド側";
+}
+
+const S={boats:[],sel:null,mode:"move",drawing:null,progCache:{},meta:null,weather:null};
+for(let i=1;i<=6;i++)S.boats.push({num:i,name:"",cls:"",course:i,st:null,ex:null,tilt:null,
+  lap:null,turn:null,line:null,x:150,y:LANE_Y(i),a:0,paths:[]});
+
+const $=id=>document.getElementById(id);
+const svg=$("board"), gBoats=$("boats"), gPaths=$("paths");
+
+/* ---------- date / selectors ---------- */
+function todayJST(){const d=new Date(Date.now()+9*3600e3);return d.toISOString().slice(0,10);}
+$("dateIn").value=todayJST();
+function ymd(){return $("dateIn").value.replaceAll("-","");}
+function apiUrl(kind){const d=$("dateIn").value;
+  return d===todayJST()?`${API}/${kind}/v3/today.json`:`${API}/${kind}/v3/${d.slice(0,4)}/${ymd()}.json`;}
+
+async function loadPrograms(){
+  const url=apiUrl("programs");
+  if(S.progCache[url])return S.progCache[url];
+  const r=await fetch(url,{cache:"no-store"});if(!r.ok)throw new Error("開催データが見つかりません");
+  const j=await r.json();S.progCache[url]=j.programs||[];return S.progCache[url];
+}
+async function fillVenues(){
+  const sel=$("venueSel");sel.innerHTML='<option value="">場を選択</option>';
+  let progs=[];
+  try{progs=await loadPrograms();note(progs.length?"":"この日の開催データがまだありません");}
+  catch(e){note("開催データを取得できませんでした（全24場から選択は可能）");}
+  const open=new Set(progs.map(p=>p.stadium_number));
+  const gOpen=document.createElement("optgroup");gOpen.label="本日開催";
+  const gOff=document.createElement("optgroup");gOff.label="開催なし（水面表示のみ）";
+  for(let n=1;n<=24;n++){
+    const o=document.createElement("option");o.value=n;
+    if(open.has(n)){
+      const g=progs.find(p=>p.stadium_number===n);
+      o.textContent=`${VENUES[n]}（${(g.grade_label||"").trim()||"一般"}）`;
+      gOpen.appendChild(o);
+    }else{o.textContent=VENUES[n];gOff.appendChild(o);}
+  }
+  if(gOpen.children.length)sel.appendChild(gOpen);
+  if(gOff.children.length)sel.appendChild(gOff);
+}
+function fillRaces(){const s=$("raceSel");s.innerHTML="";
+  for(let i=1;i<=12;i++){const o=document.createElement("option");o.value=i;o.textContent=i+"R";s.appendChild(o);}}
+fillRaces();fillVenues();
+$("dateIn").addEventListener("change",fillVenues);
+$("venueSel").addEventListener("change",()=>{applyGeo(+$("venueSel").value||null);fmStart();pickUpcoming();});
+$("swingIn").addEventListener("input",()=>{
+  GEO.swing=parseFloat($("swingIn").value)||0;
+  $("swingVal").textContent=GEO.swing+"m";
+  try{localStorage.setItem(swingKey(),GEO.swing);}catch(e){}
+  geoVisual();
+});
+function note(t){$("notice").textContent=t;}
+
+/* ---------- fetch race ---------- */
+$("fetchBtn").addEventListener("click",fetchRace);
+async function fetchRace(){
+  const jcd=+$("venueSel").value,rno=+$("raceSel").value;
+  if(!jcd){note("場を選択してください");return;}
+  $("loading").style.display="flex";note("");
+  try{
+    const biyP=fetchDirectAuto(jcd,rno); /* 直取り(公式/日和×中継4ルート)は裏で取得(待たない) */
+    const [progs,prevR]=await Promise.all([
+      loadPrograms(),
+      fetch(apiUrl("previews"),{cache:"no-store"}).catch(()=>null)
+    ]);
+    const prevs=prevR&&prevR.ok?(await prevR.json()).previews||[]:[];
+    const pg=progs.find(p=>p.stadium_number===jcd&&p.number===rno);
+    const pv=prevs.find(p=>p.stadium_number===jcd&&p.number===rno);
+    if(!pg){note("このレースの出走表がありません");$("loading").style.display="none";return;}
+    S.meta={venue:VENUES[jcd],jcd,rno,title:(pg.title||"").trim(),closed:pg.closed_at,grade:(pg.grade_label||"").trim()};
+    /* boats が配列でもオブジェクトでも、艇番(racer_boat_number)で正しく対応付ける */
+    const bmap=bs=>{const m={};(Array.isArray(bs)?bs:Object.values(bs||{})).forEach(x=>{
+      if(x&&x.racer_boat_number)m[x.racer_boat_number]=x;});return m;};
+    const pgB=bmap(pg.boats),pvB=pv?bmap(pv.boats):{};
+    /* 同じレースの再取得なら、貼り付け取込や手入力の値をAPIの空データで消さない */
+    const sameRace=!!(S.meta&&S.meta.jcd===jcd&&S.meta.rno===rno&&S.metaDate===$("dateIn").value);
+    S.metaDate=$("dateIn").value;
+    let gotApi=false;const missing=[];
+    for(const b of S.boats){
+      const gb=pgB[b.num]||{},vb=pvB[b.num]||{};
+      b.name=(gb.racer_name||"").replace(/\s+/g," ");b.cls=CLS[gb.racer_class_number]||"";
+      b.absent=!gb.racer_name;
+      b.rate1=gb.racer_national_top_1_percent??null;
+      b.rate2=gb.racer_national_top_2_percent??null;
+      b.motor2=gb.racer_assigned_motor_top_2_percent??null;
+      b.fcount=gb.racer_flying_count??null;
+      b.avgSt=gb.racer_average_start_timing||null;
+      /* 優先度: 公式API → 既存値(同一レースの再取得時)。日和は後から合流 */
+      b._apiCourse=!!vb.racer_course_number;
+      b.course=vb.racer_course_number||(sameRace?b.course:b.num);
+      b.st=vb.racer_start_timing??(sameRace?b.st:null);
+      b.ex=vb.racer_exhibition_time||(sameRace?b.ex:null);
+      /* チルトは0が「未計測」の場合があるため、展示記録(進入)がある艇のみ採用 */
+      b.tilt=(vb.racer_course_number&&vb.racer_tilt_adjustment!=null)?vb.racer_tilt_adjustment
+        :(sameRace?b.tilt:null);
+      b.lap=sameRace?b.lap:null;b.turn=sameRace?b.turn:null;b.line=sameRace?b.line:null;
+      if(vb.racer_course_number||vb.racer_exhibition_time||vb.racer_start_timing!=null)gotApi=true;
+      else if(!b.absent)missing.push(b.num);
+      b.paths=[];b.a=0;
+    }
+    const hasPrev=gotApi;
+    S.weather=pv&&pv.weather_number?{w:pv.weather_number,ws:pv.wind_speed,wd:pv.wind_direction_number,
+      wave:pv.wave_height,at:pv.air_temperature,wt:pv.water_temperature}:null;
+    S.fetchedAt=new Date(Date.now()+9*3600e3).toISOString().slice(11,16);
+    S.srcs=gotApi?"公式API":"なし";
+    S.metaBase=`${S.meta.venue} ${rno}R ${S.meta.title}`;
+    $("resultPanel").style.display="none";
+    renderMeta();
+    /* 日和が届いたら不足分を合流（レースを切り替えていたら破棄） */
+    const token=`${jcd}-${rno}-${S.metaDate}`;S.fetchToken=token;
+    biyP.then(biy=>{
+      if(!biy||S.fetchToken!==token)return;
+      let got=false;
+      for(const b of S.boats){
+        const xb=biy.boats[b.num]||{};
+        if(!b._apiCourse&&xb.course){b.course=xb.course;got=true;}
+        if((b.st==null||b.st==="")&&xb.st!=null){b.st=xb.st;got=true;}
+        if(!b.ex&&xb.ex){b.ex=xb.ex;got=true;}
+        if(b.tilt==null&&xb.tilt!=null)b.tilt=xb.tilt;
+        if(xb.lap!=null){b.lap=xb.lap;got=true;}
+        if(xb.turn!=null)b.turn=xb.turn;
+        if(xb.line!=null)b.line=xb.line;
+      }
+      /* 公式ページ直取りの場合はスタート展示(進入・ST)も反映 */
+      for(const c of (biy.courses||[])){
+        const b=S.boats[c.boat-1];if(!b||b._apiCourse)continue;
+        b.course=c.course;got=true;
+        if(c.st){if(c.st.startsWith("F"))b.st=c.st;
+          else{const v=parseFloat("0"+c.st);if(!isNaN(v))b.st=v;}}
+      }
+      if(got){
+        S.srcs=S.srcs==="なし"?"直取り":S.srcs+"+直取り";
+        renderMeta();note("");
+        if(S.autoplaced)fmStart();else renderCards();
+      }
+    });
+    note(!hasPrev?"展示情報はまだ反映されていません（展示前の可能性）。少し待って再取得するか、「📋 公式から取込」も使えます。"
+      :missing.length?`${missing.join("・")}号艇の展示が未反映です（少し待って再取得を）`:"");
+    applyGeo(jcd);fmStart();renderCards();renderWind();
+  }catch(e){note("取得に失敗しました："+e.message);}
+  $("loading").style.display="none";
+}
+
+/* ---------- paste import (official beforeinfo) ---------- */
+function officialUrl(){
+  const jcd=String(+$("venueSel").value||1).padStart(2,"0");
+  return`https://www.boatrace.jp/owpc/pc/race/beforeinfo?rno=${+$("raceSel").value||1}&jcd=${jcd}&hd=${ymd()}`;
+}
+function biyoriUrl(){
+  return`https://kyoteibiyori.com/race_shusso.php?place_no=${+$("venueSel").value||1}&race_no=${+$("raceSel").value||1}&hiduke=${ymd()}&slider=4`;
+}
+function updateLinks(){$("officialLink").href=officialUrl();$("biyoriLink").href=biyoriUrl();}
+$("pasteBtn").addEventListener("click",()=>{
+  const p=$("pastePanel");p.style.display=p.style.display==="none"?"block":"none";
+  updateLinks();
+});
+$("pasteClose").addEventListener("click",()=>$("pastePanel").style.display="none");
+$("venueSel").addEventListener("change",updateLinks);
+$("raceSel").addEventListener("change",updateLinks);
+function parseBeforeInfo(txt){
+  const L=txt.replace(/\t/g,"\n").split("\n").map(s=>s.trim()).filter(s=>s!=="");
+  const boats={},courses=[];
+  /* 本体テーブル: 艇番 → (数行内に)体重kg → 展示タイム → チルト */
+  for(let i=0;i<L.length;i++){
+    if(/^[1-6]$/.test(L[i])&&!boats[+L[i]]){
+      /* 艇番の直後(名前の次)に体重kgが来る行だけを本物の艇行とみなす */
+      const win=L.slice(i+1,i+8);
+      const kg=win.findIndex(s=>/^\d{2,3}(\.\d)?\s*(kg|ｋｇ)?$/i.test(s));
+      if(kg>=0){
+        const after=L.slice(i+1+kg+1,i+1+kg+6);
+        const ex=after.find(s=>/^[5-8]\.\d{2}$/.test(s));
+        const tilt=after.find(s=>/^-?[0-3]\.[05]$/.test(s));
+        if(ex)boats[+L[i]]={ex:parseFloat(ex),tilt:tilt!=null?parseFloat(tilt):null};
+      }
+    }
+  }
+  /* スタート展示: 「スタート展示」以降の 艇番+ST の並び順=コース */
+  const si=L.findIndex(s=>s.includes("スタート展示"));
+  if(si>=0){
+    let course=1;
+    for(let i=si+1;i<Math.min(si+80,L.length)&&course<=6;i++){
+      if(/水面気象|気温|PAGE/.test(L[i]))break;
+      if(/^[1-6]$/.test(L[i])&&L[i+1]&&/^(F\.\d{2}|L\.?\d{0,2}|\.\d{2})$/.test(L[i+1])){
+        courses.push({course,boat:+L[i],st:L[i+1]});course++;i++;
+      }
+    }
+  }
+  return{boats,courses};
+}
+/* ボートレース日和: 直前情報タブの行（列=枠番）。実ページのラベルは
+   「進入・展示・周回・周り足・直線・ST・チルト」。タブ区切りでも1行1セルでも読めるよう
+   トークン列で解析する */
+function parseBiyori(txt){
+  const tok=txt.split(/[\t\n\r|]+/).map(s=>s.trim()).filter(s=>s!=="");
+  const boats={};
+  const DASH=v=>/^[-–—ー]$/.test(v)||v==="";
+  const grab=(labels,test,conv,key)=>{
+    for(const label of labels){
+      for(let i=0;i<tok.length;i++){
+        if(tok[i]!==label)continue;
+        const vals=tok.slice(i+1,i+7);
+        if(vals.length<6)continue;
+        /* 6個すべてが「値 or -」で、値が1つ以上あれば採用 */
+        if(!vals.every(v=>test(v)||DASH(v))||!vals.some(test))continue;
+        vals.forEach((v,j)=>{if(test(v))(boats[j+1]=boats[j+1]||{})[key]=conv(v);});
+        return true;
+      }
+    }
+    return false;
+  };
+  const isTime=v=>/^\d{1,2}\.\d{2}$/.test(v);
+  grab(["進入"],v=>/^[1-6]$/.test(v),v=>+v,"course");
+  grab(["展示","展示タイム"],v=>/^[5-8]\.\d{2}$/.test(v),parseFloat,"ex");
+  grab(["周回"],isTime,parseFloat,"lap");
+  grab(["周り足","周足"],isTime,parseFloat,"turn");
+  grab(["直線"],isTime,parseFloat,"line");
+  grab(["チルト"],v=>/^-?[0-3]\.[05]$/.test(v),parseFloat,"tilt");
+  grab(["ST"],v=>/^(F\.\d{2}|\.\d{2})$/.test(v),v=>v.startsWith("F")?v:parseFloat("0"+v),"st");
+  return{boats};
+}
+/* ---------- 直取り(4ルート同時・最速の成功を採用) ----------
+   公式ページ(生HTML)×中継2種 + 日和×中継2種 を並行取得。
+   どれか1つ通れば展示が入る。生HTMLはタグを剥がして既存パーサーで解析 */
+function stripTags(html){
+  return html.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ")
+    .replace(/<br[^>]*>/gi,"\n").replace(/<\/(td|th|tr|div|p|li|tbody|table|span|a)>/gi,"\n")
+    .replace(/<[^>]+>/g,"\n").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&");
+}
+function parseAny(text){
+  const t=/<\w+[^>]*>/.test(text)?stripTags(text):text;
+  const isBiy=/前走展示|平均展示|競艇日和|ボートレース日和|kyoteibiyori/.test(t);
+  const off=isBiy?{boats:{},courses:[]}:parseBeforeInfo(t);
+  const biy=parseBiyori(t);
+  const boats={};let score=0;
+  for(let n=1;n<=6;n++){
+    const o=off.boats[n]||{},x=biy.boats[n]||{};
+    const m={ex:o.ex??x.ex??null,tilt:o.tilt??x.tilt??null,st:x.st??null,
+      course:x.course??null,lap:x.lap??null,turn:x.turn??null,line:x.line??null};
+    if(Object.values(m).some(v=>v!=null)){boats[n]=m;score+=Object.values(m).filter(v=>v!=null).length;}
+  }
+  return{boats,courses:off.courses||[],score:score+(off.courses||[]).length*2};
+}
+async function relayFetch(url,ms){
+  const c=new AbortController();const to=setTimeout(()=>c.abort(),ms);
+  try{const r=await fetch(url,{signal:c.signal});clearTimeout(to);
+    if(!r.ok)return null;const t=await r.text();return t&&t.length>600?t:null;
+  }catch(e){clearTimeout(to);return null;}
+}
+async function fetchDirectAuto(jcd,rno){
+  const d=ymd();
+  const offU=`https://www.boatrace.jp/owpc/pc/race/beforeinfo?rno=${rno}&jcd=${String(jcd).padStart(2,"0")}&hd=${d}`;
+  const biyU=`https://kyoteibiyori.com/race_shusso.php?place_no=${jcd}&race_no=${rno}&hiduke=${d}&slider=4`;
+  const attempts=[
+    ()=>relayFetch("https://api.allorigins.win/raw?url="+encodeURIComponent(offU),10000),
+    ()=>relayFetch("https://corsproxy.io/?url="+encodeURIComponent(offU),10000),
+    ()=>relayFetch("https://r.jina.ai/"+biyU+"&_="+Date.now(),10000),
+    ()=>relayFetch("https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(biyU),10000)
+  ];
+  return await new Promise(resolve=>{
+    let pending=attempts.length,best=null,done=false;
+    attempts.forEach(fn=>fn().then(txt=>{
+      if(done)return;
+      const p=txt?parseAny(txt):null;
+      if(p&&p.score>=10){done=true;resolve(p);return;}
+      if(p&&p.score>0&&(!best||p.score>best.score))best=p;
+      if(--pending===0){done=true;resolve(best);}
+    }).catch(()=>{if(--pending===0&&!done){done=true;resolve(best);}}));
+  });
+}
+$("pasteGo").addEventListener("click",()=>{
+  const raw=$("pasteIn").value||"";
+  /* 日和はスタート展示欄の数字がコース番号(艇番は画像)のため、公式とは別処理 */
+  const isBiyori=/ボートレース日和|競艇日和|kyoteibiyori|前走展示|平均展示/.test(raw);
+  const off=isBiyori?{boats:{},courses:[]}:parseBeforeInfo(raw);
+  const biy=isBiyori?parseBiyori(raw):{boats:{}};
+  let nEx=0,nSt=0,nLap=0,nCo=0;
+  for(let n=1;n<=6;n++){
+    const b=S.boats[n-1],o=off.boats[n]||{},x=biy.boats[n]||{};
+    const ex=o.ex??x.ex,tilt=o.tilt??x.tilt;
+    if(ex!=null){b.ex=ex;nEx++;}
+    if(tilt!=null)b.tilt=tilt;
+    if(x.st!=null){b.st=x.st;nSt++;}
+    if(x.course){b.course=x.course;nCo++;}
+    if(x.lap!=null){b.lap=x.lap;nLap++;}
+    if(x.turn!=null)b.turn=x.turn;
+    if(x.line!=null)b.line=x.line;
+  }
+  for(const c of off.courses){
+    const b=S.boats[c.boat-1];b.course=c.course;nCo++;
+    if(c.st.startsWith("F"))b.st=c.st;
+    else{const v=parseFloat("0"+c.st);b.st=isNaN(v)?null:v;}
+    nSt++;
+  }
+  if(!nEx&&!nSt&&!nCo&&!nLap){
+    note(isBiyori
+      ?"日和と判別しましたが展示データが見つかりません。展示がまだ行われていないか、「直前情報」タブ以外をコピーした可能性があります。"
+      :"貼り付け内容から展示情報を読み取れませんでした。直前情報ページの全体をコピーしてください。");return;}
+  $("pastePanel").style.display="none";$("pasteIn").value="";
+  fmStart();renderCards();
+  note(`${isBiyori?"日和":"公式"}ページから取り込みました（展示${nEx}・ST${Math.min(nSt,6)}・進入${Math.min(nCo,6)}${nLap?`・周回等${nLap}`:""}艇）`);
+});
+
+/* ---------- 結果取得・答え合わせ ---------- */
+const TECH={1:"逃げ",2:"差し",3:"まくり",4:"まくり差し",5:"抜き",6:"恵まれ"};
+const resCache={};
+async function fetchResultFor(dateStr,jcd,rno){
+  const url=dateStr===todayJST()?`${API}/results/v3/today.json`
+    :`${API}/results/v3/${dateStr.slice(0,4)}/${dateStr.replaceAll("-","")}.json`;
+  if(!resCache[url]){
+    const r=await fetch(url,{cache:"no-store"});
+    if(!r.ok)throw new Error("結果データがありません");
+    resCache[url]=(await r.json()).results||[];
+  }
+  return resCache[url].find(x=>x.stadium_number===jcd&&x.number===rno)||null;
+}
+function resultHtml(res){
+  const bm={};(Array.isArray(res.boats)?res.boats:Object.values(res.boats||{})).forEach(b=>{
+    if(b&&b.racer_boat_number)bm[b.racer_boat_number]=b;});
+  const order=Object.values(bm).filter(b=>b.racer_place_number)
+    .sort((a,b)=>a.racer_place_number-b.racer_place_number);
+  if(!order.length)return null;
+  const chips=order.map(b=>{const[bg,fg]=COLORS[b.racer_boat_number];
+    return`<span class="rchip" style="background:${bg};color:${fg}">${b.racer_boat_number}</span>`;
+  }).join(`<span style="color:var(--tx2)">→</span>`);
+  const tri=res.payouts&&res.payouts.trifecta&&res.payouts.trifecta[0];
+  const sts=order.slice(0,3).map(b=>`${b.racer_boat_number}号艇ST${b.racer_start_timing??"-"}`).join(" ／ ");
+  return`<b>結果</b>　${chips}　<b style="color:var(--warn)">${TECH[res.technique_number]||""}</b>${
+    tri?`　3連単 <b>${tri.combination}</b> ${tri.amount.toLocaleString()}円`:""}
+    <div style="color:var(--tx2);font-size:11px;margin-top:3px">${sts}</div>`;
+}
+$("resultBtn").addEventListener("click",async()=>{
+  if(!S.meta){note("先にレースを選んで「展示取得」してください");return;}
+  $("loading").style.display="flex";
+  try{
+    const res=await fetchResultFor(S.metaDate||$("dateIn").value,S.meta.jcd,S.meta.rno);
+    const html=res?resultHtml(res):null;
+    if(!html){note("結果はまだ出ていません（レース確定後に反映されます）");$("resultPanel").style.display="none";}
+    else{$("resultPanel").innerHTML=html;$("resultPanel").style.display="block";note("");}
+  }catch(e){note("結果を取得できませんでした："+e.message);}
+  $("loading").style.display="none";
+});
+
+/* ---------- レース切替・締切カウントダウン ---------- */
+function stepRace(d){
+  const s=$("raceSel");const cur=+s.value||1;const v=Math.min(12,Math.max(1,cur+d));
+  if(v===cur)return;
+  s.value=v;updateLinks();
+  if(S.meta)fetchRace();
+}
+$("prevRace").addEventListener("click",()=>stepRace(-1));
+$("nextRace").addEventListener("click",()=>stepRace(1));
+async function pickUpcoming(){
+  try{
+    const jcd=+$("venueSel").value;if(!jcd)return;
+    const progs=await loadPrograms();
+    const now=Date.now();
+    const next=progs.filter(p=>p.stadium_number===jcd&&p.closed_at
+      &&new Date(p.closed_at.replace(" ","T")+"+09:00").getTime()>now)
+      .sort((a,b)=>a.number-b.number)[0];
+    if(next){$("raceSel").value=next.number;updateLinks();}
+  }catch(e){}
+}
+function renderMeta(){
+  if(!S.meta){return;}
+  let cd="";
+  if(S.meta.closed){
+    const t=new Date(S.meta.closed.replace(" ","T")+"+09:00").getTime();
+    const m=Math.round((t-Date.now())/60000);
+    cd=m>0?(m>=60?`　⏱締切まで約${Math.floor(m/60)}時間${m%60}分`:`　⏱締切まで約${m}分`):"　締切済";
+  }
+  $("raceMeta").textContent=`${S.metaBase||""}　締切 ${(S.meta.closed||"").slice(11,16)}${cd}　[取得 ${S.fetchedAt||"-"}・${S.srcs||""}]`;
+}
+setInterval(renderMeta,30000);
+
+/* ---------- formations ---------- */
+function stVal(b){if(b.st==null||b.st==="")return .16;
+  if(typeof b.st==="number")return b.st;
+  const s=String(b.st).trim().toUpperCase();
+  if(s.startsWith("F"))return -(parseFloat(s.replace("F","").replace(".",""))/100||0.01);
+  const v=parseFloat(s);return isNaN(v)?.16:(v>1?v/100:v);}
+function stDisp(b){if(b.st==null||b.st==="")return"";const v=stVal(b);
+  return v<0?"F."+String(Math.round(-v*100)).padStart(2,"0"):v.toFixed(2);}
+
+function fmStart(){
+  clearPaths();
+  for(const b of S.boats){
+    const adv=Math.min(400,Math.max(25,(0.26-stVal(b))*1050));
+    b.x=60+adv;b.y=LANE_Y(b.course);b.a=0;
+  }
+  S.sel=null;S.autoplaced=true;draw();renderCards();
+}
+function fm1M(){
+  clearPaths();
+  const order=[...S.boats].sort((a,b)=>(stVal(a)+(a.course-1)*.028)-(stVal(b)+(b.course-1)*.028));
+  const step=Math.min(52,GEO.gap+8);
+  order.forEach((b,i)=>{
+    b.x=650-i*88;
+    b.y=GEO.laneTop-2+i*step;
+    b.a=Math.min(0,-55+i*14);
+  });
+  S.sel=null;S.autoplaced=false;draw();renderCards();
+}
+$("fmStart").addEventListener("click",fmStart);
+$("fm1M").addEventListener("click",fm1M);
+
+/* ---------- 定番展開の自動生成 ---------- */
+const SCENARIOS={
+  nige:{label:"イン逃げ",pos:{1:[-85,60,-42],2:[-165,105,-18],3:[-255,150,-8],4:[-310,225,0],5:[-390,265,0],6:[-440,330,0]},
+    paths:{1:[[-210,80],[-70,55],[5,-10],[-20,-105],[-120,-140],[-240,-140]],
+           2:[[-280,120],[-140,98],[-45,35]]}},
+  sashi:{label:"2コース差し",pos:{1:[-70,55,-55],2:[-150,110,-30],3:[-245,150,-10],4:[-310,225,0],5:[-390,265,0],6:[-440,330,0]},
+    paths:{1:[[-190,70],[-45,45],[38,-28],[28,-130]],
+           2:[[-280,130],[-130,100],[-25,35],[-35,-70],[-125,-125],[-240,-130]]}},
+  makuri:{label:"カドまくり",pos:{1:[-95,55,-30],2:[-180,95,-15],3:[-255,140,-8],4:[-265,235,-15],5:[-370,300,0],6:[-440,360,0]},
+    paths:{4:[[-465,280],[-265,230],[-85,140],[30,15],[0,-110],[-115,-150],[-240,-150]],
+           1:[[-200,70],[-80,50]]}},
+  makurizashi:{label:"まくり差し",pos:{1:[-80,55,-45],2:[-160,100,-25],3:[-190,140,-25],4:[-310,220,-8],5:[-390,270,0],6:[-450,335,0]},
+    paths:{3:[[-365,175],[-190,135],[-58,72],[15,-15],[-15,-115],[-125,-150],[-245,-150]],
+           1:[[-190,70],[-45,45],[40,-30]]}}
+};
+function byCourse(c){return S.boats.find(b=>b.course===c)||S.boats[c-1];}
+function applyScenario(key){
+  const sc=SCENARIOS[key];if(!sc)return;
+  const MX=800,MY=LINE0-GEO.swing*PXM;
+  clearPaths();
+  for(let c=1;c<=6;c++){
+    const b=byCourse(c),p=sc.pos[c];if(!b||!p)continue;
+    b.x=Math.max(30,Math.min(980,MX+p[0]));
+    b.y=Math.max(30,Math.min((GEO.vh||860)-30,MY+p[1]));
+    b.a=p[2];
+    const path=sc.paths[c];
+    if(path)b.paths=[path.map(pt=>[MX+pt[0],MY+pt[1]])];
+  }
+  S.sel=null;S.autoplaced=false;draw();renderCards();
+  note(`定番展開「${sc.label}」を配置しました（現在の進入コース基準）。ドラッグや航跡で微調整できます`);
+}
+document.querySelectorAll("[data-sc]").forEach(btn=>
+  btn.addEventListener("click",()=>applyScenario(btn.dataset.sc)));
+
+/* ---------- board rendering ---------- */
+const NS="http://www.w3.org/2000/svg";
+function el(n,at){const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);return e;}
+function draw(){
+  gBoats.innerHTML="";
+  for(const b of S.boats){
+    if(b.absent)continue;
+    const g=el("g",{class:"boat","data-n":b.num,transform:`translate(${b.x},${b.y}) rotate(${b.a}) scale(${GEO.sc||1.3})`});
+    g.appendChild(el("circle",{r:34,fill:"rgba(0,0,0,0)"}));
+    if(S.sel===b.num){
+      g.appendChild(el("circle",{r:46,fill:"none",stroke:"#fbbf24","stroke-width":2,"stroke-dasharray":"6 6",opacity:.9}));
+      g.appendChild(el("line",{x1:42,x2:58,stroke:"#fbbf24","stroke-width":2}));
+      g.appendChild(el("circle",{cx:70,r:14,fill:"#fbbf24",stroke:"#7a5b00","stroke-width":2,class:"rot"}));
+    }
+    const[fill,txc]=COLORS[b.num];
+    g.appendChild(el("path",{d:"M40 0 C26 13 12 16 -6 16 L-30 14 C-34 14 -37 10 -37 0 C-37 -10 -34 -14 -30 -14 L-6 -16 C12 -16 26 -13 40 0 Z",
+      fill,stroke:"rgba(0,0,0,.45)","stroke-width":2}));
+    g.appendChild(el("path",{d:"M-12 -9 L-12 9 L-30 7 L-30 -7 Z",fill:"rgba(0,0,0,.18)"}));
+    const t=el("text",{y:9,fill:txc,"font-size":24,"font-weight":800,"text-anchor":"middle"});
+    t.textContent=b.num;g.appendChild(t);
+    const st=stDisp(b);
+    if(st){const t2=el("text",{x:-44,y:6,fill:"#dcecff","font-size":14,"text-anchor":"end",opacity:.9});
+      t2.textContent=st;g.appendChild(t2);}
+    gBoats.appendChild(g);
+  }
+  drawPaths();
+}
+function drawPaths(){
+  gPaths.innerHTML="";
+  for(const b of S.boats)for(const p of b.paths){
+    if(p.length<2)continue;
+    const d="M"+p.map(pt=>pt[0]+" "+pt[1]).join(" L ");
+    gPaths.appendChild(el("path",{d,stroke:"rgba(0,0,0,.35)","stroke-width":9}));
+    const line=el("path",{d,stroke:COLORS[b.num][0],"stroke-width":5,"stroke-dasharray":"1 0"});
+    gPaths.appendChild(line);
+    const n=p.length,[x2,y2]=p[n-1],[x1,y1]=p[Math.max(0,n-4)];
+    const ang=Math.atan2(y2-y1,x2-x1);
+    gPaths.appendChild(el("path",{d:`M${x2} ${y2} L${x2-16*Math.cos(ang-0.45)} ${y2-16*Math.sin(ang-0.45)} L${x2-16*Math.cos(ang+0.45)} ${y2-16*Math.sin(ang+0.45)} Z`,
+      fill:COLORS[b.num][0],stroke:"rgba(0,0,0,.35)","stroke-width":1}));
+  }
+}
+function clearPaths(){S.boats.forEach(b=>b.paths=[]);drawPaths();}
+function renderWind(){
+  const g=$("windBadge");
+  if(!S.weather){g.setAttribute("opacity",0);return;}
+  g.setAttribute("opacity",1);
+  $("windArrow").setAttribute("transform",`rotate(${((S.weather.wd||1)-1)*22.5})`);
+  $("windTxt").textContent=`${WEATHER[S.weather.w]||""} 風${S.weather.ws}m 波${S.weather.wave}cm`;
+}
+
+/* ---------- pointer interaction ---------- */
+function svgPt(ev){const r=svg.getBoundingClientRect();
+  return[(ev.clientX-r.left)*1010/r.width,(ev.clientY-r.top)*(GEO.vh||860)/r.height];}
+let drag=null;
+svg.addEventListener("pointerdown",ev=>{
+  ev.preventDefault();
+  try{svg.setPointerCapture(ev.pointerId);}catch(e){}
+  const[x,y]=svgPt(ev);
+  const boatG=ev.target.closest(".boat");
+  if(S.mode==="draw"){
+    const n=boatG?+boatG.dataset.n:(S.sel||1);
+    S.sel=n;const b=S.boats[n-1];
+    const stroke=boatG?[[b.x,b.y]]:[[x,y]];
+    b.paths.push(stroke);S.drawing=stroke;renderCards();draw();return;
+  }
+  if(ev.target.classList.contains("rot")&&S.sel){drag={type:"rot",b:S.boats[S.sel-1]};return;}
+  if(boatG){const n=+boatG.dataset.n,b=S.boats[n-1];
+    if(S.sel!==n){S.sel=n;renderCards();draw();}
+    S.autoplaced=false;
+    drag={type:"move",b,dx:b.x-x,dy:b.y-y};return;}
+  if(S.sel!==null){S.sel=null;renderCards();draw();}
+});
+svg.addEventListener("pointermove",ev=>{
+  const[x,y]=svgPt(ev);
+  if(S.mode==="draw"&&S.drawing){
+    const p=S.drawing,[lx,ly]=p[p.length-1];
+    if((x-lx)**2+(y-ly)**2>36){p.push([x,y]);drawPaths();}return;}
+  if(!drag)return;ev.preventDefault();
+  if(drag.type==="move"){drag.b.x=Math.max(24,Math.min(986,x+drag.dx));
+    drag.b.y=Math.max(24,Math.min((GEO.vh||860)-24,y+drag.dy));}
+  else drag.b.a=Math.atan2(y-drag.b.y,x-drag.b.x)*180/Math.PI;
+  const g=gBoats.querySelector(`[data-n="${drag.b.num}"]`);
+  if(g)g.setAttribute("transform",`translate(${drag.b.x},${drag.b.y}) rotate(${drag.b.a}) scale(${GEO.sc||1.3})`);
+});
+const endDrag=()=>{drag=null;S.drawing=null;};
+svg.addEventListener("pointerup",endDrag);svg.addEventListener("pointercancel",endDrag);
+
+/* ---------- toolbar ---------- */
+$("drawBtn").addEventListener("click",()=>{
+  S.mode=S.mode==="draw"?"move":"draw";
+  $("drawBtn").classList.toggle("on",S.mode==="draw");
+  $("drawBtn").textContent=S.mode==="draw"?"✏️ 描画中（艇の色）":"✏️ 航跡を描く";});
+$("undoBtn").addEventListener("click",()=>{
+  const b=S.sel?S.boats[S.sel-1]:[...S.boats].reverse().find(b=>b.paths.length);
+  if(b&&b.paths.length){b.paths.pop();drawPaths();}});
+$("clearBtn").addEventListener("click",clearPaths);
+
+/* ---------- boat cards ---------- */
+function renderCards(){
+  const c=$("cards");c.innerHTML="";
+  const bestOf=k=>Math.min(...S.boats.map(b=>b[k]??99));
+  const bEx=bestOf("ex"),bLap=bestOf("lap"),bTurn=bestOf("turn"),bLine=bestOf("line");
+  const fmt=v=>v!=null?v.toFixed(2):"";
+  for(const b of S.boats){
+    const d=document.createElement("div");
+    d.className="card"+(S.sel===b.num?" sel":"");
+    const[bg,fg]=COLORS[b.num];
+    let kehai="";
+    if(b.avgSt&&b.st!=null&&b.st!==""){
+      const d2=b.avgSt-stVal(b);
+      if(stVal(b)<0)kehai=`<span class="kb kf">F注意</span>`;
+      else if(d2>=0.04)kehai=`<span class="kb kg">ST気配◎</span>`;
+      else if(d2<=-0.05)kehai=`<span class="kb kr">ST遅め</span>`;
+    }
+    const stats=(b.rate1!=null)?`<div class="stats">勝率${b.rate1.toFixed(2)}　2連${b.rate2??"-"}%　M${b.motor2??"-"}%　F${b.fcount??0}　平均ST${b.avgSt?b.avgSt.toFixed(2):"-"} ${kehai}</div>`:"";
+    d.innerHTML=`<div class="hd"><span class="chip" style="background:${bg};color:${fg}">${b.num}</span>
+      <span class="nm">${b.absent?"欠場":(b.name||"―")}</span><span class="cls">${b.cls}</span></div>
+      ${stats}
+      <div class="grid2">
+        <label>進入</label><input inputmode="numeric" data-f="course" data-n="${b.num}" value="${b.course||""}">
+        <label>ST</label><input data-f="st" data-n="${b.num}" value="${stDisp(b)}" placeholder="-">
+        <label>展示</label><input inputmode="decimal" data-f="ex" data-n="${b.num}"
+          value="${fmt(b.ex)}" placeholder="-" class="${b.ex&&b.ex===bEx?"best":""}">
+        <label>チルト</label><input inputmode="decimal" data-f="tilt" data-n="${b.num}" value="${b.tilt??""}" placeholder="-">
+        <label>周回</label><input inputmode="decimal" data-f="lap" data-n="${b.num}"
+          value="${fmt(b.lap)}" placeholder="-" class="${b.lap&&b.lap===bLap?"best":""}">
+        <label>周足</label><input inputmode="decimal" data-f="turn" data-n="${b.num}"
+          value="${fmt(b.turn)}" placeholder="-" class="${b.turn&&b.turn===bTurn?"best":""}">
+        <label>直線</label><input inputmode="decimal" data-f="line" data-n="${b.num}"
+          value="${fmt(b.line)}" placeholder="-" class="${b.line&&b.line===bLine?"best":""}">
+        <label></label><span></span>
+      </div>`;
+    d.addEventListener("click",ev=>{if(ev.target.tagName!=="INPUT"){S.sel=b.num;renderCards();draw();}});
+    c.appendChild(d);
+  }
+  c.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{
+    const b=S.boats[+inp.dataset.n-1],f=inp.dataset.f,v=inp.value.trim();
+    if(f==="course")b.course=Math.min(6,Math.max(1,parseInt(v)||b.num));
+    else if(f==="st")b.st=v||null;
+    else if(f==="ex"||f==="lap"||f==="turn"||f==="line")b[f]=parseFloat(v)||null;
+    else b.tilt=v===""?null:parseFloat(v);
+    renderCards();
+  }));
+}
+
+/* ---------- PNG export ---------- */
+$("pngBtn").addEventListener("click",async()=>{
+  const clone=svg.cloneNode(true);
+  const VH=GEO.vh||860;
+  clone.setAttribute("width",1010);clone.setAttribute("height",VH);
+  const meta=S.meta?`${S.meta.venue}${S.meta.rno}R ${$("dateIn").value}`:$("dateIn").value;
+  const t=el("text",{x:20,y:40,fill:"#fff","font-size":26,"font-weight":700});
+  t.textContent=meta;clone.appendChild(t);
+  const xml=new XMLSerializer().serializeToString(clone);
+  const img=new Image();
+  img.onload=async()=>{
+    const cv=document.createElement("canvas");cv.width=2020;cv.height=VH*2;
+    cv.getContext("2d").drawImage(img,0,0,2020,VH*2);
+    cv.toBlob(async bl=>{
+      const file=new File([bl],`tenkai_${meta.replace(/\s/g,"_")}.png`,{type:"image/png"});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:"展開予想"});return;}catch(e){}}
+      const a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=file.name;a.click();
+    },"image/png");
+  };
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(xml);
+});
+
+/* ---------- save / load ---------- */
+function store(){try{return JSON.parse(localStorage.getItem("tenkai_saves")||"[]");}catch(e){return[];}}
+function setStore(v){try{localStorage.setItem("tenkai_saves",JSON.stringify(v));}catch(e){note("この画面ではローカル保存が使えません（画像保存は可能）");}}
+$("saveBtn").addEventListener("click",()=>{
+  const v=store();
+  v.unshift({id:Date.now(),date:$("dateIn").value,meta:S.meta,memo:$("memo").value,
+    weather:S.weather,geo:{...GEO},boats:S.boats.map(b=>({...b}))});
+  setStore(v.slice(0,30));renderSaves();note("保存しました");setTimeout(()=>note(""),1500);
+});
+function renderSaves(){
+  const v=store(),w=$("saves");w.innerHTML="";
+  $("savesHd").style.display=v.length?"":"none";
+  v.forEach(it=>{
+    const d=document.createElement("div");d.className="saveItem";
+    const lbl=it.meta?`${it.meta.venue} ${it.meta.rno}R`:"手動配置";
+    d.innerHTML=`<div class="lbl"><b>${lbl}</b>　<span style="color:var(--tx2)">${it.date}</span>
+      <div>${(it.memo||"").slice(0,40)}</div>${it.result?`<div style="margin-top:4px">${it.result}</div>`:""}</div>
+      ${it.meta?`<button class="small" data-a="res">🏁</button>`:""}
+      <button class="small" data-a="load">読込</button><button class="small" data-a="del">削除</button>`;
+    const resBtn=d.querySelector('[data-a=res]');
+    if(resBtn)resBtn.addEventListener("click",async ev=>{
+      ev.stopPropagation();
+      try{
+        const res=await fetchResultFor(it.date,it.meta.jcd,it.meta.rno);
+        const html=res?resultHtml(res):null;
+        if(!html){note("このレースの結果はまだ出ていません");return;}
+        setStore(store().map(x=>x.id===it.id?{...x,result:html}:x));renderSaves();note("");
+      }catch(e){note("結果を取得できませんでした");}
+    });
+    d.querySelector('[data-a=load]').addEventListener("click",()=>{
+      it.boats.forEach((sb,i)=>Object.assign(S.boats[i],sb));
+      if(it.geo){Object.assign(GEO,it.geo);
+        $("swingIn").value=GEO.swing;$("swingVal").textContent=GEO.swing+"m";geoVisual();}
+      S.meta=it.meta;S.weather=it.weather;$("memo").value=it.memo||"";
+      $("raceMeta").textContent=it.meta?`${it.meta.venue} ${it.meta.rno}R ${it.meta.title||""}（保存: ${it.date}）`:"";
+      S.sel=null;draw();renderCards();renderWind();window.scrollTo({top:0,behavior:"smooth"});});
+    d.querySelector('[data-a=del]').addEventListener("click",()=>{
+      setStore(store().filter(x=>x.id!==it.id));renderSaves();});
+    w.appendChild(d);
+  });
+}
+renderSaves();
+
+/* ---------- init ---------- */
+applyGeo(null);fmStart();
+window.__APP__={S,GEO,applyGeo,fmStart,fm1M,fetchRace,draw,renderCards,renderWind};
+</script>
+</body>
+</html>
